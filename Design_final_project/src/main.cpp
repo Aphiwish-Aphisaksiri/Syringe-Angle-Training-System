@@ -7,7 +7,7 @@
 int16_t i = 0;
 
 struct SensorData { // Define a struct to hold sensor data. Change resolution as needed.
-  int16_t roll, pitch, yaw;
+  int16_t accX, accY, accZ;
   // Add more variables for other data values
 };
 
@@ -29,35 +29,40 @@ void readAccelerometer(SensorData& data) {
   int16_t accelY = Wire.read() << 8 | Wire.read();
   int16_t accelZ = Wire.read() << 8 | Wire.read();
 
-  // Convert accelerometer data to g-force
-  float accelScale = 2.0; // Set the accelerometer scale (±2g, ±4g, ±8g, ±16g)
-  float accelXg = accelX / 16384;
-  float accelYg = accelY / 16384;
-  float accelZg = accelZ / 16384;
-
-  // Calculate the roll and pitch angles using accelerometer data
-  float roll = atan2(accelYg, sqrt(accelXg * accelXg + accelZg * accelZg)) * 180.0 / M_PI;
-  float pitch = atan2(-accelXg, sqrt(accelYg * accelYg + accelZg * accelZg)) * 180.0 / M_PI;
-  float yaw = 0.0; // Set yaw to 0 since we are only reading accelerometer data
-
-  // Assign roll, pitch, and yaw values to data variables
-  data.roll = roll;
-  data.pitch = pitch;
-  data.yaw = yaw;
+  data.accX = accelX - 16384 * 0.05; // off set
+  data.accY = accelY - 16384 * 0.62;
+  data.accZ = accelZ + 16384 * 0.0;
 }
 
 void setup() {
   Serial.begin(115200); // Initialize serial communication
   Wire.begin(); // Initialize I2C communication
   initializeGyro(); // Initialize the gyro sensor
+  pinMode(3, OUTPUT); // Set pin 3 as output for the buzzer
 }
 
 void loop() {
   SensorData data; // Create a struct to hold sensor data
   readAccelerometer(data); // Read accelerometer data
-  // Assign values to other data variables
-  //Serial.println(data.roll);
-  //Serial.write((byte*)&data, sizeof(data));
+  Serial.write((byte*)&data, sizeof(data));
 
+  // Convert accelerometer data to g-force
+  float accelXg = data.accX / 16384;
+  float accelYg = data.accY / 16384;
+  float accelZg = data.accZ / 16384;
+
+  // Calculate the roll and pitch angles using accelerometer data
+  float roll = atan2(accelYg, sqrt(accelXg * accelXg + accelZg * accelZg)) * 180.0 / M_PI;
+  float pitch = atan2(-accelXg, sqrt(accelYg * accelYg + accelZg * accelZg)) * 180.0 / M_PI;
+  if (pitch > 70 || pitch < -70) {
+    digitalWrite(3, HIGH); // Turn on the buzzer
+  } else {
+    digitalWrite(3, LOW); // Turn off the buzzer
+  }
+  if (roll > 15 || roll < -15) {
+    digitalWrite(3, HIGH); // Turn on the buzzer
+  } else {
+    digitalWrite(3, LOW); // Turn off the buzzer
+  }
   //delay(1);
 }
