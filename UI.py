@@ -15,6 +15,7 @@ class ArduinoController:
         self.gyroY = np.array(np.zeros(len(self.__gyro_buffer)))
         self.gyroZ = np.array(np.zeros(len(self.__gyro_buffer)))
         self.resolution = 2 #Bytes (At least 2)
+        self.current_angle = [0,0,0]
         
     def create_package_object(self, header_type, payload):
         # convert package_object to bytearray
@@ -23,32 +24,33 @@ class ArduinoController:
         return package_bytes
         
     def render(self):
-        y_min = -32768
-        y_max = 32767               
+        y_min = -180
+        y_max = 180             
         # Plot gyro value
         with dpg.window(label="Plotter", height=1080, width=800):
             with dpg.plot(label="PlotX", height=333, width=-1):
                 dpg.add_plot_legend()
-                x_axis_gyroX = dpg.add_plot_axis(dpg.mvXAxis, label="x", tag="x_axis_gyroX", no_tick_labels=False)
-                y_axis_gyroX = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_gyroX")
+                x_axis_gyroX = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_gyroX", no_tick_labels=False)
+                y_axis_gyroX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_gyroX")
                 dpg.set_axis_limits(y_axis_gyroX, y_min, y_max)
                 dpg.add_line_series(self.data_x, self.gyroX, label="Gyro X axis", parent="y_axis_gyroX", tag="gyro_plotX")
             
             with dpg.plot(label="PlotY", height=333, width=-1):
                 dpg.add_plot_legend()
-                x_axis_gyroY = dpg.add_plot_axis(dpg.mvXAxis, label="x", tag="x_axis_gyroY", no_tick_labels=False)
+                x_axis_gyroY = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_gyroY", no_tick_labels=False)
                 y_axis_gyroY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_gyroY")
                 dpg.set_axis_limits(y_axis_gyroY, y_min, y_max)
                 dpg.add_line_series(self.data_x, self.gyroY, label="Gyro Y axis", parent="y_axis_gyroY", tag="gyro_plotY")
             
             with dpg.plot(label="PlotZ", height=333, width=-1):
                 dpg.add_plot_legend()
-                x_axis_gyroZ = dpg.add_plot_axis(dpg.mvXAxis, label="x", tag="x_axis_gyroZ", no_tick_labels=False)
-                y_axis_gyroZ = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_gyroZ")
+                x_axis_gyroZ = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_gyroZ", no_tick_labels=False)
+                y_axis_gyroZ = dpg.add_plot_axis(dpg.mvYAxis, label="z", tag="y_axis_gyroZ")
                 dpg.set_axis_limits(y_axis_gyroZ, y_min, y_max)
                 dpg.add_line_series(self.data_x, self.gyroZ, label="Gyro Z axis", parent="y_axis_gyroZ", tag="gyro_plotZ")
                 
         with dpg.window(label="Value Monitor", height=400, width=300):
+            dpg.add_button(label="Set Zero", callback=self.cb_set_zero)
             dpg.add_text("Gyro X axis")
             dpg.add_text(tag="gyroX_value")
             dpg.add_text("Gyro Y axis")
@@ -60,7 +62,8 @@ class ArduinoController:
         try:
             inputdata = self.ser.read(6 * self.resolution)
             for i in range(len(self.__gyro_buffer)):
-                self.__gyro_buffer[i].append(int.from_bytes(inputdata[i * self.resolution : (i + 1) * self.resolution], byteorder='little', signed=True))
+                gyro_data = int.from_bytes(inputdata[i * self.resolution : (i + 1) * self.resolution], byteorder='little', signed=True)
+                self.__gyro_buffer[i].append(gyro_data)
                 if len(self.__gyro_buffer[i]) >= 3000:
                     self.__gyro_buffer[i].pop(0)
             for i in range(len(self.__accelerometer_buffer)):
@@ -86,6 +89,10 @@ class ArduinoController:
         
         except Exception as e:
             print(e)
+        
+    def cb_set_zero(self):
+            self.current_angle = [0,0,0]
+            print(self.current_angle)
             
     def run(self):
         while True:
