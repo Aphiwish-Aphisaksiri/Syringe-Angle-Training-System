@@ -53,16 +53,23 @@ void loop() {
 
   // Calculate the roll and pitch angles using accelerometer data
   float roll = atan2(accelYg, sqrt(accelXg * accelXg + accelZg * accelZg)) * 180.0 / M_PI;
-  float pitch = atan2(-accelXg, sqrt(accelYg * accelYg + accelZg * accelZg)) * 180.0 / M_PI;
-  if (pitch > 70 || pitch < -70) {
-    digitalWrite(3, HIGH); // Turn on the buzzer
+  float pitch = -atan2(accelXg, sqrt(accelYg * accelYg + accelZg * accelZg)) * 180.0 / M_PI;
+  
+  static unsigned long buzzerStartTime = 0;
+  static bool buzzerOn = false;
+  
+  if (pitch > 2 || pitch < -2 || roll > 5 || roll < -5) {
+    if (!buzzerOn) {
+      analogWrite(3, 128); // Turn on the buzzer at maximum loudness
+      buzzerStartTime = millis(); // Record the start time of the buzzer
+      buzzerOn = true;
+    }
   } else {
-    digitalWrite(3, LOW); // Turn off the buzzer
+    if (buzzerOn && (millis() - buzzerStartTime >= 250)) {
+      analogWrite(3, 0); // Turn off the buzzer
+      buzzerOn = false;
+    }
   }
-  if (roll > 15 || roll < -15) {
-    digitalWrite(3, HIGH); // Turn on the buzzer
-  } else {
-    digitalWrite(3, LOW); // Turn off the buzzer
-  }
+  
   //delay(1);
 }

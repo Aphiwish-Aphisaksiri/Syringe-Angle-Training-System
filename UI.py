@@ -67,11 +67,11 @@ class ArduinoController:
                 dpg.add_line_series(self.data_x, self.gyroY, label="roll Y axis", parent="y_axis_roll", tag="roll_plotY")
                 
         with dpg.window(label="Value Monitor", height=400, width=300):
-            dpg.add_text("Gyro X axis")
+            dpg.add_text("acc X axis")
             dpg.add_text(tag="accX_value")
-            dpg.add_text("Gyro Y axis")
+            dpg.add_text("acc Y axis")
             dpg.add_text(tag="accY_value")
-            dpg.add_text("Gyro Z axis")
+            dpg.add_text("acc Z axis")
             dpg.add_text(tag="accZ_value")
             dpg.add_text("Pitch:")
             dpg.add_text(tag="pitch_value")
