@@ -20,6 +20,7 @@ class ArduinoController:
         self.roll = 0
         self.__angle_buffer =[[],[]]
         self.__is_training = False
+        self.start_training_time = 0
         
     def create_package_object(self, header_type, payload):
         # convert package_object to bytearray
@@ -70,13 +71,14 @@ class ArduinoController:
                 dpg.add_line_series(self.data_x, self.gyroY, label="roll Y axis", parent="y_axis_roll", tag="roll_plotY")
                 
         with dpg.window(label="Value Monitor", height=400, width=300):
-            dpg.add_button(label="measure", callback=self.measure)
+            dpg.add_button(label="Measure!", callback=self.measure)
             with dpg.group(horizontal=True):
                 dpg.add_text("Pitch:")
                 dpg.add_text(tag="pitch_value", default_value="0")
             with dpg.group(horizontal=True):
                 dpg.add_text("Roll:")
                 dpg.add_text(tag="roll_value", default_value="0")
+            dpg.add_text("")
             with dpg.group(horizontal=True):
                 dpg.add_text("Trainee:")
                 dpg.add_input_text(default_value="Trainee", tag="trainee_name")
@@ -84,8 +86,9 @@ class ArduinoController:
                 dpg.add_text("Trainer:")
                 dpg.add_input_text(default_value="Trainer", tag="trainer_name")
             with dpg.group(horizontal=True):
-                dpg.add_button(label="Start", callback=self.toggle_training, tag="training_start_btn")
-                dpg.add_button(label="Stop", callback=self.toggle_training, tag="training_stop_btn")
+                dpg.add_button(label="Train!", callback=self.toggle_training, tag="training_toggle_btn")
+                dpg.add_text("Not Training", tag="training_status")
+            dpg.add_text("")
             with dpg.group(horizontal=True):
                 dpg.add_text("Training time:")
                 dpg.add_text(tag="training_time", default_value="0")
@@ -134,23 +137,27 @@ class ArduinoController:
         dpg.set_value("roll_value", self.roll)
     
     def toggle_training(self, sender):
-        print("Training is toggled")
-        if sender == "training_start_btn" and not self.__is_training:
+        trainee_name = ""
+        trainer_name = ""
+        if not self.__is_training:
             print("Training is started")
+            dpg.set_value("training_status", "Training")
             self.__is_training = True
-            trainee = dpg.get_value("trainee_name")
-            trainer = dpg.get_value("trainer_name")
-            start_time = time.time()
-        elif sender == "training_stop_btn" and self.__is_training:
+            trainee_name = dpg.get_value("trainee_name")
+            trainer_name = dpg.get_value("trainer_name")
+            self.start_training_time = time.time()
+        elif self.__is_training:
             print("Training is stopped")
+            dpg.set_value("training_status", "Not training")
             self.__is_training = False
-            total_time = time.time() - start_time
-            dpg.set_value("training_time", total_time)
+            total_time = (time.time() - self.start_training_time) * 1  # Convert to seconds
+
+            dpg.set_value("training_time", round(total_time,6))
             
             # Save data to .csv file
             if not os.path.exists("data"):
                 os.makedirs("data")
-            file_name = "data/" + trainee + "_" + trainer + "_" + str(total_time) + ".csv"
+            file_name = "data/" + trainee_name + "_" + trainer_name + "_" + str(total_time) + ".csv"
             with open(file_name, 'w') as f:
                 f.write("Pitch, Roll\n")
                 for i in range(len(self.__angle_buffer[0])):
