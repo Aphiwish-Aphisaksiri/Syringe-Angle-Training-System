@@ -40,28 +40,28 @@ class ArduinoController:
         dpg.configure_app(init_file="UI_config.ini")
         y_acc_min = -1
         y_acc_max = 1       
-        y_angle_min = -120
-        y_angle_max = 120
+        y_angle_min = -180
+        y_angle_max = 180
         # Plot gyro value
         with dpg.window(label="Acceleration", height=1080, width=800):
             with dpg.plot(label="Acceleration X-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accX", no_tick_labels=False)
-                y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_accX")
+                y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="Acceleration (g-force)", tag="y_axis_accX")
                 dpg.set_axis_limits(y_axis_accX, y_acc_min, y_acc_max)
                 dpg.add_line_series(self.data_x, self.gyroX, label="Acceleration X-axis", parent="y_axis_accX", tag="acc_plotX")
             
             with dpg.plot(label="Acceleration Y-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accY", no_tick_labels=False)
-                y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_accY")
+                y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="Acceleration (g-force)", tag="y_axis_accY")
                 dpg.set_axis_limits(y_axis_accY, y_acc_min, y_acc_max)
                 dpg.add_line_series(self.data_x, self.gyroY, label="Acceleration Y-axis", parent="y_axis_accY", tag="acc_plotY")
             
             with dpg.plot(label="Acceleration Z-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accZ = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accZ", no_tick_labels=False)
-                y_axis_accZ = dpg.add_plot_axis(dpg.mvYAxis, label="z", tag="y_axis_accZ")
+                y_axis_accZ = dpg.add_plot_axis(dpg.mvYAxis, label="Acceleration (g-force)", tag="y_axis_accZ")
                 dpg.set_axis_limits(y_axis_accZ, y_acc_min, y_acc_max)
                 dpg.add_line_series(self.data_x, self.gyroZ, label="Acceleration Z-axis", parent="y_axis_accZ", tag="acc_plotZ")
         
@@ -69,28 +69,32 @@ class ArduinoController:
             with dpg.plot(label="Pitch", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_pitch", no_tick_labels=False)
-                y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_pitch")
+                y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="Pitch Angle (Degree)", tag="y_axis_pitch")
                 dpg.set_axis_limits(y_axis_accX, y_angle_min, y_angle_max)
                 dpg.add_line_series(self.data_x, self.gyroX, label="pitch", parent="y_axis_pitch", tag="pitch_plotX")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current pitch:")
                 dpg.add_text(tag="current_pitch", default_value="0")
+                dpg.add_text("Degree")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current pitch error:")
                 dpg.add_text(tag="current_pitch_error", default_value="0")
+                dpg.add_text("Degree")
                 
             with dpg.plot(label="Roll", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_roll", no_tick_labels=False)
-                y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_roll")
+                y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="Roll Angle (degree)", tag="y_axis_roll")
                 dpg.set_axis_limits(y_axis_accY, y_angle_min, y_angle_max)
                 dpg.add_line_series(self.data_x, self.gyroY, label="roll", parent="y_axis_roll", tag="roll_plotY")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current roll:")
                 dpg.add_text(tag="current_roll", default_value="0")
+                dpg.add_text("Degree")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current roll error:")
                 dpg.add_text(tag="current_roll_error", default_value="0")
+                dpg.add_text("Degree")
                 
         with dpg.window(label="Recording Monitor", height=400, width=300):
             dpg.add_text("[Calibration]")
