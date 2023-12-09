@@ -29,8 +29,8 @@ void readAccelerometer(SensorData& data) {
   int16_t accelY = Wire.read() << 8 | Wire.read();
   int16_t accelZ = Wire.read() << 8 | Wire.read();
 
-  data.accX = accelX - 16384 * 0.05; // off set
-  data.accY = accelY - 16384 * 0.62;
+  data.accX = accelX - 16384 * 0.089; // off set
+  data.accY = accelY - 16384 * 0.64;
   data.accZ = accelZ + 16384 * 0.0;
 }
 
