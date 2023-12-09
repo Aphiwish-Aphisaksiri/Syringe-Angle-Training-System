@@ -8,6 +8,7 @@ import os
 
 PITCH_STANDARD = 30 # Degree
 ROLL_STANDARD = 0 # Degree
+SAMPLING_RATE = 1000 # sps
 
 class ArduinoController:
 
@@ -76,6 +77,7 @@ class ArduinoController:
             with dpg.group(horizontal=True):
                 dpg.add_text("Current pitch error:")
                 dpg.add_text(tag="current_pitch_error", default_value="0")
+                
             with dpg.plot(label="Roll", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_roll", no_tick_labels=False)
@@ -204,7 +206,7 @@ class ArduinoController:
             # Save data to .csv file
             if not os.path.exists("data"):
                 os.makedirs("data")
-            file_name = "data/" + self.__trainee_name + "_" + self.__trainer_name + "_" + str(total_time) + ".csv"
+            file_name = "data/" + self.__trainee_name + "_" + self.__trainer_name + "_" + str(round(total_time, 2)) + "_" + str(SAMPLING_RATE) + ".csv"
             with open(file_name, 'w') as f:
                 f.write("Pitch, Roll\n")
                 for i in range(len(self.__angle_buffer[0])):
