@@ -6,8 +6,6 @@ import numpy as np
 import time
 import os
 
-PITCH_STANDARD = 30 # Degree
-ROLL_STANDARD = 0 # Degree
 SAMPLING_RATE = 1000 # sps
 
 class ArduinoController:
@@ -29,6 +27,8 @@ class ArduinoController:
         self.__trainer_name = ""
         self.__pitch_error = 0
         self.__roll_error = 0
+        self.__pitch_calibration = 30
+        self.__roll_calibration = 0
         
     def create_package_object(self, header_type, payload):
         # convert package_object to bytearray
@@ -94,7 +94,13 @@ class ArduinoController:
                 
         with dpg.window(label="Recording Monitor", height=400, width=300):
             dpg.add_text("[Calibration]")
-            dpg.add_button(label="Measure!", callback=self.measure)
+            dpg.add_button(label="Calibrate!", callback=self.measure, height=30, width=100)
+            with dpg.group(horizontal=True):
+                dpg.add_text("Pitch Calibration angle:")
+                dpg.add_input_int(default_value=30, tag="pitch_calibration", width=-1)
+            with dpg.group(horizontal=True):
+                dpg.add_text("Roll Calibration angle:")
+                dpg.add_input_int(default_value=0, tag="roll_calibration", width=-1)
             with dpg.group(horizontal=True):
                 dpg.add_text("Pitch:")
                 dpg.add_text(tag="pitch_value", default_value="0")
@@ -107,22 +113,21 @@ class ArduinoController:
             with dpg.group(horizontal=True):
                 dpg.add_text("Roll Error Angle:")
                 dpg.add_text(tag="roll_error", default_value="0")
-            dpg.add_text("")
+            dpg.add_text("========================================================================")
             
             dpg.add_text("[Record data]")
             with dpg.group(horizontal=True):
                 dpg.add_text("Trainee name:")
-                dpg.add_input_text(default_value="Trainee", tag="trainee_name")
+                dpg.add_input_text(default_value="Trainee", tag="trainee_name", width=-1)
             with dpg.group(horizontal=True):
                 dpg.add_text("Trainer name:")
-                dpg.add_input_text(default_value="Trainer", tag="trainer_name")
-            with dpg.group(horizontal=True):
-                dpg.add_button(label="Record!", callback=self.toggle_training, tag="training_toggle_btn")
-                dpg.add_text("Not Recording", tag="training_status")
+                dpg.add_input_text(default_value="Trainer", tag="trainer_name", width=-1)
+            dpg.add_button(label="Record!", callback=self.toggle_training, tag="training_toggle_btn", height=30, width=100)
+            dpg.add_text("Not Recording", tag="training_status")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current Operating time:")
                 dpg.add_text(tag="current_training_time", default_value="0")
-            dpg.add_text("")
+            dpg.add_text("========================================================================")
             
             dpg.add_text("[Record Summary]")
             with dpg.group(horizontal=True):
@@ -171,8 +176,8 @@ class ArduinoController:
             dpg.fit_axis_data("x_axis_roll")
             dpg.fit_axis_data("y_axis_roll")
             
-            self.__pitch_error = PITCH_STANDARD - self.pitch
-            self.__roll_error = ROLL_STANDARD - self.roll
+            self.__pitch_error = self.__pitch_calibration - self.pitch
+            self.__roll_error = self.__roll_calibration - self.roll
             
             dpg.set_value("current_pitch", round(self.pitch, 2))
             dpg.set_value("current_roll", round(self.roll, 2))
@@ -191,6 +196,8 @@ class ArduinoController:
         dpg.set_value("roll_value", self.roll)
         dpg.set_value("pitch_error", round(self.__pitch_error, 2))
         dpg.set_value("roll_error", round(self.__roll_error, 2))
+        self.__pitch_calibration = dpg.get_value("pitch_calibration")
+        self.__roll_calibration = dpg.get_value("roll_calibration")
         print("Data is measured")
     
     def toggle_training(self, sender):
