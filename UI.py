@@ -37,34 +37,35 @@ class ArduinoController:
         return package_bytes
         
     def render(self):
+        dpg.configure_app(init_file="UI_config.ini")
         y_acc_min = -1
         y_acc_max = 1       
         y_angle_min = -120
         y_angle_max = 120
         # Plot gyro value
         with dpg.window(label="Acceleration", height=1080, width=800):
-            with dpg.plot(label="AccX", height=333, width=-1):
+            with dpg.plot(label="Acceleration X-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accX", no_tick_labels=False)
                 y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_accX")
                 dpg.set_axis_limits(y_axis_accX, y_acc_min, y_acc_max)
-                dpg.add_line_series(self.data_x, self.gyroX, label="acc X axis", parent="y_axis_accX", tag="acc_plotX")
+                dpg.add_line_series(self.data_x, self.gyroX, label="Acceleration X-axis", parent="y_axis_accX", tag="acc_plotX")
             
-            with dpg.plot(label="AccY", height=333, width=-1):
+            with dpg.plot(label="Acceleration Y-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accY", no_tick_labels=False)
                 y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_accY")
                 dpg.set_axis_limits(y_axis_accY, y_acc_min, y_acc_max)
-                dpg.add_line_series(self.data_x, self.gyroY, label="acc Y axis", parent="y_axis_accY", tag="acc_plotY")
+                dpg.add_line_series(self.data_x, self.gyroY, label="Acceleration Y-axis", parent="y_axis_accY", tag="acc_plotY")
             
-            with dpg.plot(label="AccZ", height=333, width=-1):
+            with dpg.plot(label="Acceleration Z-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accZ = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accZ", no_tick_labels=False)
                 y_axis_accZ = dpg.add_plot_axis(dpg.mvYAxis, label="z", tag="y_axis_accZ")
                 dpg.set_axis_limits(y_axis_accZ, y_acc_min, y_acc_max)
-                dpg.add_line_series(self.data_x, self.gyroZ, label="acc Z axis", parent="y_axis_accZ", tag="acc_plotZ")
+                dpg.add_line_series(self.data_x, self.gyroZ, label="Acceleration Z-axis", parent="y_axis_accZ", tag="acc_plotZ")
         
-        with dpg.window(label="Pitch Roll", height=800, width=800):
+        with dpg.window(label="Angular Rotation of Syringe", height=800, width=800):
             with dpg.plot(label="Pitch", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_pitch", no_tick_labels=False)
@@ -91,7 +92,7 @@ class ArduinoController:
                 dpg.add_text("Current roll error:")
                 dpg.add_text(tag="current_roll_error", default_value="0")
                 
-        with dpg.window(label="Value Monitor", height=400, width=300):
+        with dpg.window(label="Recording Monitor", height=400, width=300):
             dpg.add_text("Calibration:")
             dpg.add_button(label="Measure!", callback=self.measure)
             with dpg.group(horizontal=True):
@@ -108,7 +109,7 @@ class ArduinoController:
                 dpg.add_text(tag="roll_error", default_value="0")
             dpg.add_text("")
             
-            dpg.add_text("Training data:")
+            dpg.add_text("Record data:")
             with dpg.group(horizontal=True):
                 dpg.add_text("Trainee:")
                 dpg.add_input_text(default_value="Trainee", tag="trainee_name")
@@ -116,11 +117,11 @@ class ArduinoController:
                 dpg.add_text("Trainer:")
                 dpg.add_input_text(default_value="Trainer", tag="trainer_name")
             with dpg.group(horizontal=True):
-                dpg.add_button(label="Train!", callback=self.toggle_training, tag="training_toggle_btn")
-                dpg.add_text("Not Training", tag="training_status")
+                dpg.add_button(label="Record!", callback=self.toggle_training, tag="training_toggle_btn")
+                dpg.add_text("Not Recording", tag="training_status")
             dpg.add_text("")
             
-            dpg.add_text("Training Summary:")
+            dpg.add_text("Record Summary:")
             with dpg.group(horizontal=True):
                 dpg.add_text("Trainee:")
                 dpg.add_text(tag="trainee_name_summary", default_value="Trainee")
@@ -128,7 +129,7 @@ class ArduinoController:
                 dpg.add_text("Trainer:")
                 dpg.add_text(tag="trainer_name_summary", default_value="Trainer")
             with dpg.group(horizontal=True):
-                dpg.add_text("Training time:")
+                dpg.add_text("Operating time:")
                 dpg.add_text(tag="training_time", default_value="0")
             
     def update(self):
@@ -188,16 +189,16 @@ class ArduinoController:
     
     def toggle_training(self, sender):
         if not self.__is_training:
-            print("Training is started")
-            dpg.set_value("training_status", "Training")
+            print("Recording is started")
+            dpg.set_value("training_status", "Recording")
             self.__is_training = True
             self.__trainee_name = dpg.get_value("trainee_name")
             self.__trainer_name = dpg.get_value("trainer_name")
             self.start_training_time = time.time()
             print("Trainee name: " + self.__trainee_name + " ,Trainer name: " + self.__trainer_name)
         elif self.__is_training:
-            print("Training is stopped")
-            dpg.set_value("training_status", "Not training")
+            print("Recording is stopped")
+            dpg.set_value("training_status", "Not Recording")
             self.__is_training = False
             total_time = (time.time() - self.start_training_time) * 1  # Convert to seconds
 
@@ -232,7 +233,7 @@ class ArduinoController:
 
 def ui_init():
     dpg.create_context()
-    dpg.create_viewport(title='Main UI', height=1080, width=1920)
+    dpg.create_viewport(title='Syringe Angle Monitoring System', height=1080, width=1920)
     dpg.setup_dearpygui()
 
 def ui_draw():
