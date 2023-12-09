@@ -21,6 +21,8 @@ class ArduinoController:
         self.__angle_buffer =[[],[]]
         self.__is_training = False
         self.start_training_time = 0
+        self.__trainee_name = ""
+        self.__trainer_name = ""
         
     def create_package_object(self, header_type, payload):
         # convert package_object to bytearray
@@ -62,23 +64,32 @@ class ArduinoController:
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_pitch", no_tick_labels=False)
                 y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_pitch")
                 dpg.set_axis_limits(y_axis_accX, y_angle_min, y_angle_max)
-                dpg.add_line_series(self.data_x, self.gyroX, label="pitch X axis", parent="y_axis_pitch", tag="pitch_plotX")
+                dpg.add_line_series(self.data_x, self.gyroX, label="pitch", parent="y_axis_pitch", tag="pitch_plotX")
             with dpg.plot(label="Roll", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_roll", no_tick_labels=False)
                 y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_roll")
                 dpg.set_axis_limits(y_axis_accY, y_angle_min, y_angle_max)
-                dpg.add_line_series(self.data_x, self.gyroY, label="roll Y axis", parent="y_axis_roll", tag="roll_plotY")
+                dpg.add_line_series(self.data_x, self.gyroY, label="roll", parent="y_axis_roll", tag="roll_plotY")
                 
         with dpg.window(label="Value Monitor", height=400, width=300):
+            dpg.add_text("Calibration:")
             dpg.add_button(label="Measure!", callback=self.measure)
             with dpg.group(horizontal=True):
                 dpg.add_text("Pitch:")
                 dpg.add_text(tag="pitch_value", default_value="0")
             with dpg.group(horizontal=True):
+                dpg.add_text("Pitch Error%:")
+                dpg.add_text(tag="pitch_error", default_value="0")
+            with dpg.group(horizontal=True):
                 dpg.add_text("Roll:")
                 dpg.add_text(tag="roll_value", default_value="0")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Roll Error%:")
+                dpg.add_text(tag="roll_error", default_value="0")
             dpg.add_text("")
+            
+            dpg.add_text("Training data:")
             with dpg.group(horizontal=True):
                 dpg.add_text("Trainee:")
                 dpg.add_input_text(default_value="Trainee", tag="trainee_name")
@@ -89,11 +100,19 @@ class ArduinoController:
                 dpg.add_button(label="Train!", callback=self.toggle_training, tag="training_toggle_btn")
                 dpg.add_text("Not Training", tag="training_status")
             dpg.add_text("")
+            
+            dpg.add_text("Training Summary:")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Trainee:")
+                dpg.add_text(tag="trainee_name_summary", default_value="Trainee")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Trainer:")
+                dpg.add_text(tag="trainer_name_summary", default_value="Trainer")
             with dpg.group(horizontal=True):
                 dpg.add_text("Training time:")
                 dpg.add_text(tag="training_time", default_value="0")
             
-    def update(self): # update input from potentiometer and plotting and handle sync mode
+    def update(self):
         try:
             inputdata = self.ser.read(6 * self.resolution)
             for i in range(len(self.__acc_buffer)):
@@ -133,18 +152,22 @@ class ArduinoController:
             print(e)
     
     def measure(self):
+        pitch_standard = 60
+        roll_standard = 0
         dpg.set_value("pitch_value", self.pitch)
         dpg.set_value("roll_value", self.roll)
+        pitch_error = (pitch_standard - self.pitch) / pitch_standard * 100
+        roll_error = (roll_standard - self.roll) / roll_standard * 100
+        dpg.set_value("pitch_error", round(pitch_error, 2))
+        dpg.set_value("roll_error", round(roll_error, 2))
     
     def toggle_training(self, sender):
-        trainee_name = ""
-        trainer_name = ""
         if not self.__is_training:
             print("Training is started")
             dpg.set_value("training_status", "Training")
             self.__is_training = True
-            trainee_name = dpg.get_value("trainee_name")
-            trainer_name = dpg.get_value("trainer_name")
+            self.__trainee_name = dpg.get_value("trainee_name")
+            self.__trainer_name = dpg.get_value("trainer_name")
             self.start_training_time = time.time()
         elif self.__is_training:
             print("Training is stopped")
@@ -153,11 +176,13 @@ class ArduinoController:
             total_time = (time.time() - self.start_training_time) * 1  # Convert to seconds
 
             dpg.set_value("training_time", round(total_time,6))
+            dpg.set_value("trainee_name_summary", self.__trainee_name)
+            dpg.set_value("trainer_name_summary", self.__trainer_name)
             
             # Save data to .csv file
             if not os.path.exists("data"):
                 os.makedirs("data")
-            file_name = "data/" + trainee_name + "_" + trainer_name + "_" + str(total_time) + ".csv"
+            file_name = "data/" + self.__trainee_name + "_" + self.__trainer_name + "_" + str(total_time) + ".csv"
             with open(file_name, 'w') as f:
                 f.write("Pitch, Roll\n")
                 for i in range(len(self.__angle_buffer[0])):
