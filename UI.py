@@ -6,8 +6,6 @@ import numpy as np
 import time
 import os
 
-PITCH_STANDARD = 30 # Degree
-ROLL_STANDARD = 0 # Degree
 SAMPLING_RATE = 1000 # sps
 
 class ArduinoController:
@@ -29,6 +27,8 @@ class ArduinoController:
         self.__trainer_name = ""
         self.__pitch_error = 0
         self.__roll_error = 0
+        self.__pitch_calibration = 30
+        self.__roll_calibration = 0
         
     def create_package_object(self, header_type, payload):
         # convert package_object to bytearray
@@ -40,28 +40,28 @@ class ArduinoController:
         dpg.configure_app(init_file="UI_config.ini")
         y_acc_min = -1
         y_acc_max = 1       
-        y_angle_min = -120
-        y_angle_max = 120
+        y_angle_min = -180
+        y_angle_max = 180
         # Plot gyro value
         with dpg.window(label="Acceleration", height=1080, width=800):
             with dpg.plot(label="Acceleration X-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accX", no_tick_labels=False)
-                y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_accX")
+                y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="Acceleration (g-force)", tag="y_axis_accX")
                 dpg.set_axis_limits(y_axis_accX, y_acc_min, y_acc_max)
                 dpg.add_line_series(self.data_x, self.gyroX, label="Acceleration X-axis", parent="y_axis_accX", tag="acc_plotX")
             
             with dpg.plot(label="Acceleration Y-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accY", no_tick_labels=False)
-                y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_accY")
+                y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="Acceleration (g-force)", tag="y_axis_accY")
                 dpg.set_axis_limits(y_axis_accY, y_acc_min, y_acc_max)
                 dpg.add_line_series(self.data_x, self.gyroY, label="Acceleration Y-axis", parent="y_axis_accY", tag="acc_plotY")
             
             with dpg.plot(label="Acceleration Z-axis", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accZ = dpg.add_plot_axis(dpg.mvXAxis, label="time", tag="x_axis_accZ", no_tick_labels=False)
-                y_axis_accZ = dpg.add_plot_axis(dpg.mvYAxis, label="z", tag="y_axis_accZ")
+                y_axis_accZ = dpg.add_plot_axis(dpg.mvYAxis, label="Acceleration (g-force)", tag="y_axis_accZ")
                 dpg.set_axis_limits(y_axis_accZ, y_acc_min, y_acc_max)
                 dpg.add_line_series(self.data_x, self.gyroZ, label="Acceleration Z-axis", parent="y_axis_accZ", tag="acc_plotZ")
         
@@ -69,32 +69,42 @@ class ArduinoController:
             with dpg.plot(label="Pitch", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_pitch", no_tick_labels=False)
-                y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_pitch")
+                y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="Pitch Angle (Degree)", tag="y_axis_pitch")
                 dpg.set_axis_limits(y_axis_accX, y_angle_min, y_angle_max)
                 dpg.add_line_series(self.data_x, self.gyroX, label="pitch", parent="y_axis_pitch", tag="pitch_plotX")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current pitch:")
                 dpg.add_text(tag="current_pitch", default_value="0")
+                dpg.add_text("Degree")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current pitch error:")
                 dpg.add_text(tag="current_pitch_error", default_value="0")
+                dpg.add_text("Degree")
                 
             with dpg.plot(label="Roll", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_roll", no_tick_labels=False)
-                y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_roll")
+                y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="Roll Angle (degree)", tag="y_axis_roll")
                 dpg.set_axis_limits(y_axis_accY, y_angle_min, y_angle_max)
                 dpg.add_line_series(self.data_x, self.gyroY, label="roll", parent="y_axis_roll", tag="roll_plotY")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current roll:")
                 dpg.add_text(tag="current_roll", default_value="0")
+                dpg.add_text("Degree")
             with dpg.group(horizontal=True):
                 dpg.add_text("Current roll error:")
                 dpg.add_text(tag="current_roll_error", default_value="0")
+                dpg.add_text("Degree")
                 
         with dpg.window(label="Recording Monitor", height=400, width=300):
-            dpg.add_text("Calibration:")
-            dpg.add_button(label="Measure!", callback=self.measure)
+            dpg.add_text("[Calibration]")
+            dpg.add_button(label="Calibrate!", callback=self.measure, height=30, width=100)
+            with dpg.group(horizontal=True):
+                dpg.add_text("Pitch Calibration angle:")
+                dpg.add_input_int(default_value=30, tag="pitch_calibration", width=-1)
+            with dpg.group(horizontal=True):
+                dpg.add_text("Roll Calibration angle:")
+                dpg.add_input_int(default_value=0, tag="roll_calibration", width=-1)
             with dpg.group(horizontal=True):
                 dpg.add_text("Pitch:")
                 dpg.add_text(tag="pitch_value", default_value="0")
@@ -107,29 +117,31 @@ class ArduinoController:
             with dpg.group(horizontal=True):
                 dpg.add_text("Roll Error Angle:")
                 dpg.add_text(tag="roll_error", default_value="0")
-            dpg.add_text("")
+            dpg.add_text("========================================================================")
             
-            dpg.add_text("Record data:")
+            dpg.add_text("[Record data]")
             with dpg.group(horizontal=True):
-                dpg.add_text("Trainee:")
-                dpg.add_input_text(default_value="Trainee", tag="trainee_name")
+                dpg.add_text("Trainee name:")
+                dpg.add_input_text(default_value="Trainee", tag="trainee_name", width=-1)
             with dpg.group(horizontal=True):
-                dpg.add_text("Trainer:")
-                dpg.add_input_text(default_value="Trainer", tag="trainer_name")
+                dpg.add_text("Trainer name:")
+                dpg.add_input_text(default_value="Trainer", tag="trainer_name", width=-1)
+            dpg.add_button(label="Record!", callback=self.toggle_training, tag="training_toggle_btn", height=30, width=100)
+            dpg.add_text("Not Recording", tag="training_status")
             with dpg.group(horizontal=True):
-                dpg.add_button(label="Record!", callback=self.toggle_training, tag="training_toggle_btn")
-                dpg.add_text("Not Recording", tag="training_status")
-            dpg.add_text("")
+                dpg.add_text("Current Operating time:")
+                dpg.add_text(tag="current_training_time", default_value="0")
+            dpg.add_text("========================================================================")
             
-            dpg.add_text("Record Summary:")
+            dpg.add_text("[Record Summary]")
             with dpg.group(horizontal=True):
-                dpg.add_text("Trainee:")
+                dpg.add_text("Trainee name:")
                 dpg.add_text(tag="trainee_name_summary", default_value="Trainee")
             with dpg.group(horizontal=True):
-                dpg.add_text("Trainer:")
+                dpg.add_text("Trainer name:")
                 dpg.add_text(tag="trainer_name_summary", default_value="Trainer")
             with dpg.group(horizontal=True):
-                dpg.add_text("Operating time:")
+                dpg.add_text("Time operated:")
                 dpg.add_text(tag="training_time", default_value="0")
             
     def update(self):
@@ -168,13 +180,16 @@ class ArduinoController:
             dpg.fit_axis_data("x_axis_roll")
             dpg.fit_axis_data("y_axis_roll")
             
-            self.__pitch_error = PITCH_STANDARD - self.pitch
-            self.__roll_error = ROLL_STANDARD - self.roll
+            self.__pitch_error = self.__pitch_calibration - self.pitch
+            self.__roll_error = self.__roll_calibration - self.roll
             
             dpg.set_value("current_pitch", round(self.pitch, 2))
             dpg.set_value("current_roll", round(self.roll, 2))
             dpg.set_value("current_pitch_error", round(self.__pitch_error, 2))
             dpg.set_value("current_roll_error", round(self.__roll_error, 2))
+            
+            if self.__is_training:
+                dpg.set_value("current_training_time", round((time.time() - self.start_training_time), 6))
             
         
         except Exception as e:
@@ -185,6 +200,8 @@ class ArduinoController:
         dpg.set_value("roll_value", self.roll)
         dpg.set_value("pitch_error", round(self.__pitch_error, 2))
         dpg.set_value("roll_error", round(self.__roll_error, 2))
+        self.__pitch_calibration = dpg.get_value("pitch_calibration")
+        self.__roll_calibration = dpg.get_value("roll_calibration")
         print("Data is measured")
     
     def toggle_training(self, sender):
