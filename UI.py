@@ -6,6 +6,10 @@ import numpy as np
 import time
 import os
 
+PITCH_STANDARD = 30 # Degree
+ROLL_STANDARD = 0 # Degree
+SAMPLING_RATE = 1000 # sps
+
 class ArduinoController:
 
     def __init__(self):
@@ -19,6 +23,12 @@ class ArduinoController:
         self.pitch = 0
         self.roll = 0
         self.__angle_buffer =[[],[]]
+        self.__is_training = False
+        self.start_training_time = 0
+        self.__trainee_name = ""
+        self.__trainer_name = ""
+        self.__pitch_error = 0
+        self.__roll_error = 0
         
     def create_package_object(self, header_type, payload):
         # convert package_object to bytearray
@@ -54,31 +64,74 @@ class ArduinoController:
                 dpg.set_axis_limits(y_axis_accZ, y_acc_min, y_acc_max)
                 dpg.add_line_series(self.data_x, self.gyroZ, label="acc Z axis", parent="y_axis_accZ", tag="acc_plotZ")
         
-        with dpg.window(label="Pitch Roll", height=700, width=800):
+        with dpg.window(label="Pitch Roll", height=800, width=800):
             with dpg.plot(label="Pitch", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_pitch", no_tick_labels=False)
                 y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_pitch")
                 dpg.set_axis_limits(y_axis_accX, y_angle_min, y_angle_max)
-                dpg.add_line_series(self.data_x, self.gyroX, label="pitch X axis", parent="y_axis_pitch", tag="pitch_plotX")
+                dpg.add_line_series(self.data_x, self.gyroX, label="pitch", parent="y_axis_pitch", tag="pitch_plotX")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current pitch:")
+                dpg.add_text(tag="current_pitch", default_value="0")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current pitch error:")
+                dpg.add_text(tag="current_pitch_error", default_value="0")
+                
             with dpg.plot(label="Roll", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_roll", no_tick_labels=False)
                 y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_roll")
                 dpg.set_axis_limits(y_axis_accY, y_angle_min, y_angle_max)
-                dpg.add_line_series(self.data_x, self.gyroY, label="roll Y axis", parent="y_axis_roll", tag="roll_plotY")
+                dpg.add_line_series(self.data_x, self.gyroY, label="roll", parent="y_axis_roll", tag="roll_plotY")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current roll:")
+                dpg.add_text(tag="current_roll", default_value="0")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current roll error:")
+                dpg.add_text(tag="current_roll_error", default_value="0")
                 
         with dpg.window(label="Value Monitor", height=400, width=300):
-            dpg.add_button(label="measure", callback=self.measure)
-            dpg.add_text("Pitch:")
-            dpg.add_text(tag="pitch_value")
-            dpg.add_text("Roll:")
-            dpg.add_text(tag="roll_value")
-            dpg.add_input_text(label="Trainee:", default_value="Trainee", tag="trainee_name")
-            dpg.add_input_text(label="Trainer:", default_value="Trainer", tag="trainer_name")
-            dpg.add_button(label="Start", callback=self.toggle_training, tag="training_button")
+            dpg.add_text("Calibration:")
+            dpg.add_button(label="Measure!", callback=self.measure)
+            with dpg.group(horizontal=True):
+                dpg.add_text("Pitch:")
+                dpg.add_text(tag="pitch_value", default_value="0")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Pitch Error Angle:")
+                dpg.add_text(tag="pitch_error", default_value="0")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Roll:")
+                dpg.add_text(tag="roll_value", default_value="0")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Roll Error Angle:")
+                dpg.add_text(tag="roll_error", default_value="0")
+            dpg.add_text("")
             
-    def update(self): # update input from potentiometer and plotting and handle sync mode
+            dpg.add_text("Training data:")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Trainee:")
+                dpg.add_input_text(default_value="Trainee", tag="trainee_name")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Trainer:")
+                dpg.add_input_text(default_value="Trainer", tag="trainer_name")
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="Train!", callback=self.toggle_training, tag="training_toggle_btn")
+                dpg.add_text("Not Training", tag="training_status")
+            dpg.add_text("")
+            
+            dpg.add_text("Training Summary:")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Trainee:")
+                dpg.add_text(tag="trainee_name_summary", default_value="Trainee")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Trainer:")
+                dpg.add_text(tag="trainer_name_summary", default_value="Trainer")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Training time:")
+                dpg.add_text(tag="training_time", default_value="0")
+            
+    def update(self):
         try:
             inputdata = self.ser.read(6 * self.resolution)
             for i in range(len(self.__acc_buffer)):
@@ -114,8 +167,14 @@ class ArduinoController:
             dpg.fit_axis_data("x_axis_roll")
             dpg.fit_axis_data("y_axis_roll")
             
-            dpg.set_value("pitch_value", self.pitch)
-            dpg.set_value("roll_value", self.roll)
+            self.__pitch_error = PITCH_STANDARD - self.pitch
+            self.__roll_error = ROLL_STANDARD - self.roll
+            
+            dpg.set_value("current_pitch", round(self.pitch, 2))
+            dpg.set_value("current_roll", round(self.roll, 2))
+            dpg.set_value("current_pitch_error", round(self.__pitch_error, 2))
+            dpg.set_value("current_roll_error", round(self.__roll_error, 2))
+            
         
         except Exception as e:
             print(e)
@@ -123,25 +182,42 @@ class ArduinoController:
     def measure(self):
         dpg.set_value("pitch_value", self.pitch)
         dpg.set_value("roll_value", self.roll)
+        dpg.set_value("pitch_error", round(self.__pitch_error, 2))
+        dpg.set_value("roll_error", round(self.__roll_error, 2))
+        print("Data is measured")
     
-    def toggle_training(self):
-        if dpg.get_value("training_button") == "Start":
-            dpg.set_value("training_button", "Stop")
-            trainee = dpg.get_value("trainee_name")
-            trainer = dpg.get_value("trainer_name")
-            start_time = time.time()
-        else:
-            dpg.set_value("training_button", "Start")
-            total_time = time.time() - start_time
+    def toggle_training(self, sender):
+        if not self.__is_training:
+            print("Training is started")
+            dpg.set_value("training_status", "Training")
+            self.__is_training = True
+            self.__trainee_name = dpg.get_value("trainee_name")
+            self.__trainer_name = dpg.get_value("trainer_name")
+            self.start_training_time = time.time()
+            print("Trainee name: " + self.__trainee_name + " ,Trainer name: " + self.__trainer_name)
+        elif self.__is_training:
+            print("Training is stopped")
+            dpg.set_value("training_status", "Not training")
+            self.__is_training = False
+            total_time = (time.time() - self.start_training_time) * 1  # Convert to seconds
+
+            dpg.set_value("training_time", round(total_time,6))
+            dpg.set_value("trainee_name_summary", self.__trainee_name)
+            dpg.set_value("trainer_name_summary", self.__trainer_name)
             
             # Save data to .csv file
             if not os.path.exists("data"):
                 os.makedirs("data")
-            file_name = "data/" + trainee + "_" + trainer + "_" + str(total_time) + ".csv"
+            file_name = "data/" + self.__trainee_name + "_" + self.__trainer_name + "_" + str(round(total_time, 2)) + "_" + str(SAMPLING_RATE) + ".csv"
             with open(file_name, 'w') as f:
+                f.write("Trainee Name: " + self.__trainee_name + "\n")
+                f.write("Trainer Name: " + self.__trainer_name + "\n")
+                f.write("Total Time Used: " + str(round(total_time, 2)) + " seconds\n")
+                f.write("Sampling Rate: " + str(SAMPLING_RATE) + " sps\n")
                 f.write("Pitch, Roll\n")
                 for i in range(len(self.__angle_buffer[0])):
                     f.write(str(self.__angle_buffer[0][i]) + "," + str(self.__angle_buffer[1][i]) + "\n")
+            print("Data is saved to " + file_name)
             
             
     def run(self):
