@@ -93,7 +93,7 @@ class ArduinoController:
                 dpg.add_text(tag="current_roll_error", default_value="0")
                 
         with dpg.window(label="Recording Monitor", height=400, width=300):
-            dpg.add_text("Calibration:")
+            dpg.add_text("[Calibration]")
             dpg.add_button(label="Measure!", callback=self.measure)
             with dpg.group(horizontal=True):
                 dpg.add_text("Pitch:")
@@ -109,27 +109,30 @@ class ArduinoController:
                 dpg.add_text(tag="roll_error", default_value="0")
             dpg.add_text("")
             
-            dpg.add_text("Record data:")
+            dpg.add_text("[Record data]")
             with dpg.group(horizontal=True):
-                dpg.add_text("Trainee:")
+                dpg.add_text("Trainee name:")
                 dpg.add_input_text(default_value="Trainee", tag="trainee_name")
             with dpg.group(horizontal=True):
-                dpg.add_text("Trainer:")
+                dpg.add_text("Trainer name:")
                 dpg.add_input_text(default_value="Trainer", tag="trainer_name")
             with dpg.group(horizontal=True):
                 dpg.add_button(label="Record!", callback=self.toggle_training, tag="training_toggle_btn")
                 dpg.add_text("Not Recording", tag="training_status")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current Operating time:")
+                dpg.add_text(tag="current_training_time", default_value="0")
             dpg.add_text("")
             
-            dpg.add_text("Record Summary:")
+            dpg.add_text("[Record Summary]")
             with dpg.group(horizontal=True):
-                dpg.add_text("Trainee:")
+                dpg.add_text("Trainee name:")
                 dpg.add_text(tag="trainee_name_summary", default_value="Trainee")
             with dpg.group(horizontal=True):
-                dpg.add_text("Trainer:")
+                dpg.add_text("Trainer name:")
                 dpg.add_text(tag="trainer_name_summary", default_value="Trainer")
             with dpg.group(horizontal=True):
-                dpg.add_text("Operating time:")
+                dpg.add_text("Time operated:")
                 dpg.add_text(tag="training_time", default_value="0")
             
     def update(self):
@@ -175,6 +178,9 @@ class ArduinoController:
             dpg.set_value("current_roll", round(self.roll, 2))
             dpg.set_value("current_pitch_error", round(self.__pitch_error, 2))
             dpg.set_value("current_roll_error", round(self.__roll_error, 2))
+            
+            if self.__is_training:
+                dpg.set_value("current_training_time", round((time.time() - self.start_training_time), 6))
             
         
         except Exception as e:
