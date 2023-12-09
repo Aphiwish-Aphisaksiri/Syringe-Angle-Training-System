@@ -6,6 +6,9 @@ import numpy as np
 import time
 import os
 
+PITCH_STANDARD = 30 # Degree
+ROLL_STANDARD = 0 # Degree
+
 class ArduinoController:
 
     def __init__(self):
@@ -23,6 +26,8 @@ class ArduinoController:
         self.start_training_time = 0
         self.__trainee_name = ""
         self.__trainer_name = ""
+        self.__pitch_error = 0
+        self.__roll_error = 0
         
     def create_package_object(self, header_type, payload):
         # convert package_object to bytearray
@@ -58,19 +63,31 @@ class ArduinoController:
                 dpg.set_axis_limits(y_axis_accZ, y_acc_min, y_acc_max)
                 dpg.add_line_series(self.data_x, self.gyroZ, label="acc Z axis", parent="y_axis_accZ", tag="acc_plotZ")
         
-        with dpg.window(label="Pitch Roll", height=700, width=800):
+        with dpg.window(label="Pitch Roll", height=800, width=800):
             with dpg.plot(label="Pitch", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accX = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_pitch", no_tick_labels=False)
                 y_axis_accX = dpg.add_plot_axis(dpg.mvYAxis, label="x", tag="y_axis_pitch")
                 dpg.set_axis_limits(y_axis_accX, y_angle_min, y_angle_max)
                 dpg.add_line_series(self.data_x, self.gyroX, label="pitch", parent="y_axis_pitch", tag="pitch_plotX")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current pitch:")
+                dpg.add_text(tag="current_pitch", default_value="0")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current pitch error:")
+                dpg.add_text(tag="current_pitch_error", default_value="0")
             with dpg.plot(label="Roll", height=333, width=-1):
                 dpg.add_plot_legend()
                 x_axis_accY = dpg.add_plot_axis(dpg.mvXAxis, label="angle", tag="x_axis_roll", no_tick_labels=False)
                 y_axis_accY = dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis_roll")
                 dpg.set_axis_limits(y_axis_accY, y_angle_min, y_angle_max)
                 dpg.add_line_series(self.data_x, self.gyroY, label="roll", parent="y_axis_roll", tag="roll_plotY")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current roll:")
+                dpg.add_text(tag="current_roll", default_value="0")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current roll error:")
+                dpg.add_text(tag="current_roll_error", default_value="0")
                 
         with dpg.window(label="Value Monitor", height=400, width=300):
             dpg.add_text("Calibration:")
@@ -79,13 +96,13 @@ class ArduinoController:
                 dpg.add_text("Pitch:")
                 dpg.add_text(tag="pitch_value", default_value="0")
             with dpg.group(horizontal=True):
-                dpg.add_text("Pitch Error%:")
+                dpg.add_text("Pitch Error Angle:")
                 dpg.add_text(tag="pitch_error", default_value="0")
             with dpg.group(horizontal=True):
                 dpg.add_text("Roll:")
                 dpg.add_text(tag="roll_value", default_value="0")
             with dpg.group(horizontal=True):
-                dpg.add_text("Roll Error%:")
+                dpg.add_text("Roll Error Angle:")
                 dpg.add_text(tag="roll_error", default_value="0")
             dpg.add_text("")
             
@@ -147,19 +164,24 @@ class ArduinoController:
             dpg.fit_axis_data("y_axis_pitch")
             dpg.fit_axis_data("x_axis_roll")
             dpg.fit_axis_data("y_axis_roll")
+            
+            self.__pitch_error = PITCH_STANDARD - self.pitch
+            self.__roll_error = ROLL_STANDARD - self.roll
+            
+            dpg.set_value("current_pitch", round(self.pitch, 2))
+            dpg.set_value("current_roll", round(self.roll, 2))
+            dpg.set_value("current_pitch_error", round(self.__pitch_error, 2))
+            dpg.set_value("current_roll_error", round(self.__roll_error, 2))
+            
         
         except Exception as e:
             print(e)
     
     def measure(self):
-        pitch_standard = 60
-        roll_standard = 0
         dpg.set_value("pitch_value", self.pitch)
         dpg.set_value("roll_value", self.roll)
-        pitch_error = (pitch_standard - self.pitch) / pitch_standard * 100
-        roll_error = (roll_standard - self.roll) / roll_standard * 100
-        dpg.set_value("pitch_error", round(pitch_error, 2))
-        dpg.set_value("roll_error", round(roll_error, 2))
+        dpg.set_value("pitch_error", round(self.__pitch_error, 2))
+        dpg.set_value("roll_error", round(self.__roll_error, 2))
     
     def toggle_training(self, sender):
         if not self.__is_training:
