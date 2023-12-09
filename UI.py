@@ -184,6 +184,7 @@ class ArduinoController:
         dpg.set_value("roll_value", self.roll)
         dpg.set_value("pitch_error", round(self.__pitch_error, 2))
         dpg.set_value("roll_error", round(self.__roll_error, 2))
+        print("Data is measured")
     
     def toggle_training(self, sender):
         if not self.__is_training:
@@ -193,6 +194,7 @@ class ArduinoController:
             self.__trainee_name = dpg.get_value("trainee_name")
             self.__trainer_name = dpg.get_value("trainer_name")
             self.start_training_time = time.time()
+            print("Trainee name: " + self.__trainee_name + " ,Trainer name: " + self.__trainer_name)
         elif self.__is_training:
             print("Training is stopped")
             dpg.set_value("training_status", "Not training")
@@ -208,9 +210,14 @@ class ArduinoController:
                 os.makedirs("data")
             file_name = "data/" + self.__trainee_name + "_" + self.__trainer_name + "_" + str(round(total_time, 2)) + "_" + str(SAMPLING_RATE) + ".csv"
             with open(file_name, 'w') as f:
+                f.write("Trainee Name: " + self.__trainee_name + "\n")
+                f.write("Trainer Name: " + self.__trainer_name + "\n")
+                f.write("Total Time Used: " + str(round(total_time, 2)) + " seconds\n")
+                f.write("Sampling Rate: " + str(SAMPLING_RATE) + " sps\n")
                 f.write("Pitch, Roll\n")
                 for i in range(len(self.__angle_buffer[0])):
                     f.write(str(self.__angle_buffer[0][i]) + "," + str(self.__angle_buffer[1][i]) + "\n")
+            print("Data is saved to " + file_name)
             
             
     def run(self):
