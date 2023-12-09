@@ -3,6 +3,8 @@ import threading
 import math
 import serial
 import numpy as np
+import time
+import os
 
 class ArduinoController:
 
@@ -67,16 +69,14 @@ class ArduinoController:
                 dpg.add_line_series(self.data_x, self.gyroY, label="roll Y axis", parent="y_axis_roll", tag="roll_plotY")
                 
         with dpg.window(label="Value Monitor", height=400, width=300):
-            dpg.add_text("acc X axis")
-            dpg.add_text(tag="accX_value")
-            dpg.add_text("acc Y axis")
-            dpg.add_text(tag="accY_value")
-            dpg.add_text("acc Z axis")
-            dpg.add_text(tag="accZ_value")
+            dpg.add_button(label="measure", callback=self.measure)
             dpg.add_text("Pitch:")
             dpg.add_text(tag="pitch_value")
             dpg.add_text("Roll:")
             dpg.add_text(tag="roll_value")
+            dpg.add_input_text(label="Trainee:", default_value="Trainee", tag="trainee_name")
+            dpg.add_input_text(label="Trainer:", default_value="Trainer", tag="trainer_name")
+            dpg.add_button(label="Start", callback=self.toggle_training, tag="training_button")
             
     def update(self): # update input from potentiometer and plotting and handle sync mode
         try:
@@ -114,14 +114,35 @@ class ArduinoController:
             dpg.fit_axis_data("x_axis_roll")
             dpg.fit_axis_data("y_axis_roll")
             
-            dpg.set_value("accX_value", self.__acc_buffer[0][-1])
-            dpg.set_value("accY_value", self.__acc_buffer[1][-1])
-            dpg.set_value("accZ_value", self.__acc_buffer[2][-1])
             dpg.set_value("pitch_value", self.pitch)
             dpg.set_value("roll_value", self.roll)
         
         except Exception as e:
             print(e)
+    
+    def measure(self):
+        dpg.set_value("pitch_value", self.pitch)
+        dpg.set_value("roll_value", self.roll)
+    
+    def toggle_training(self):
+        if dpg.get_value("training_button") == "Start":
+            dpg.set_value("training_button", "Stop")
+            trainee = dpg.get_value("trainee_name")
+            trainer = dpg.get_value("trainer_name")
+            start_time = time.time()
+        else:
+            dpg.set_value("training_button", "Start")
+            total_time = time.time() - start_time
+            
+            # Save data to .csv file
+            if not os.path.exists("data"):
+                os.makedirs("data")
+            file_name = "data/" + trainee + "_" + trainer + "_" + str(total_time) + ".csv"
+            with open(file_name, 'w') as f:
+                f.write("Pitch, Roll\n")
+                for i in range(len(self.__angle_buffer[0])):
+                    f.write(str(self.__angle_buffer[0][i]) + "," + str(self.__angle_buffer[1][i]) + "\n")
+            
             
     def run(self):
         while True:
