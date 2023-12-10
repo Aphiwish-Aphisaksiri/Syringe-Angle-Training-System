@@ -7,6 +7,7 @@ import time
 import os
 
 SAMPLING_RATE = 1000 # sps
+BUZZER_ALERT_TIME = 0.5 # seconds
 
 class ArduinoController:
 
@@ -29,6 +30,9 @@ class ArduinoController:
         self.__roll_error = 0
         self.__pitch_calibration = 30
         self.__roll_calibration = 0
+        self.__pitch_deadzone = 30
+        self.__roll_deadzone = 30
+        self.__buzzer_start_time = 0
         
     def create_package_object(self, header_type, payload):
         # convert package_object to bytearray
@@ -106,6 +110,12 @@ class ArduinoController:
                 dpg.add_text("Roll Calibration angle:")
                 dpg.add_input_int(default_value=0, tag="roll_calibration", width=-1)
             with dpg.group(horizontal=True):
+                dpg.add_text("Pitch Deadzone angle:")
+                dpg.add_input_int(default_value=30, tag="pitch_deadzone", width=-1)
+            with dpg.group(horizontal=True):
+                dpg.add_text("Roll Deadzone angle:")
+                dpg.add_input_int(default_value=30, tag="roll_deadzone", width=-1)
+            with dpg.group(horizontal=True):
                 dpg.add_text("Pitch:")
                 dpg.add_text(tag="pitch_value", default_value="0")
             with dpg.group(horizontal=True):
@@ -161,6 +171,16 @@ class ArduinoController:
             if len(self.__angle_buffer[0]) >= 3000:
                 self.__angle_buffer[0].pop(0)
                 self.__angle_buffer[1].pop(0)
+                
+            # Write buzzer command "1" to Arduino if the pitch or roll is out of range
+            if abs(self.pitch - self.__pitch_calibration) > self.__pitch_deadzone or abs(self.roll - self.__roll_calibration) > self.__roll_deadzone:
+                # print("Buzzer alert: Pitch or roll is out of range")
+                if time.time() - self.__buzzer_start_time > BUZZER_ALERT_TIME:
+                    self.__buzzer_start_time = time.time()
+                    self.ser.write(bytearray(b'\x01'))
+            else:
+                pass
+                # print("No alert")
             
             # Plot gyro value
             self.data_x = np.arange(0, len(self.__acc_buffer[0]), 1)
@@ -202,6 +222,8 @@ class ArduinoController:
         dpg.set_value("roll_error", round(self.__roll_error, 2))
         self.__pitch_calibration = dpg.get_value("pitch_calibration")
         self.__roll_calibration = dpg.get_value("roll_calibration")
+        self.__pitch_deadzone = dpg.get_value("pitch_deadzone")
+        self.__roll_deadzone = dpg.get_value("roll_deadzone")
         print("Data is measured")
     
     def toggle_training(self, sender):
