@@ -47,29 +47,32 @@ void loop() {
   Serial.write((byte*)&data, sizeof(data));
 
   // Convert accelerometer data to g-force
-  float accelXg = data.accX / 16384;
-  float accelYg = data.accY / 16384;
-  float accelZg = data.accZ / 16384;
+  // float accelXg = data.accX / 16384;
+  // float accelYg = data.accY / 16384;
+  // float accelZg = data.accZ / 16384;
 
   // Calculate the roll and pitch angles using accelerometer data
-  float roll = atan2(accelYg, sqrt(accelXg * accelXg + accelZg * accelZg)) * 180.0 / M_PI;
-  float pitch = -atan2(accelXg, sqrt(accelYg * accelYg + accelZg * accelZg)) * 180.0 / M_PI;
+  // float roll = atan2(accelYg, sqrt(accelXg * accelXg + accelZg * accelZg)) * 180.0 / M_PI;
+  // float pitch = -atan2(accelXg, sqrt(accelYg * accelYg + accelZg * accelZg)) * 180.0 / M_PI;
   
   static unsigned long buzzerStartTime = 0;
   static bool buzzerOn = false;
-  
-  if (pitch > 2 || pitch < -2 || roll > 5 || roll < -5) {
-    if (!buzzerOn) {
+
+  // read command from serial port if command = 1, turn on buzzer
+  if (Serial.available() > 0) {
+    byte command[1];
+    Serial.readBytes(command, 1);
+    if (command[0] == 1) {
       analogWrite(3, 128); // Turn on the buzzer at maximum loudness
       buzzerStartTime = millis(); // Record the start time of the buzzer
       buzzerOn = true;
     }
-  } else {
+  }
+  else{
     if (buzzerOn && (millis() - buzzerStartTime >= 250)) {
       analogWrite(3, 0); // Turn off the buzzer
       buzzerOn = false;
     }
   }
-  
   delay(1);
 }
