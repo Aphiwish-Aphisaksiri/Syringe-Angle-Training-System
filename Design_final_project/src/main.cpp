@@ -57,19 +57,22 @@ void loop() {
   
   static unsigned long buzzerStartTime = 0;
   static bool buzzerOn = false;
-  
-  if (pitch > 2 || pitch < -2 || roll > 5 || roll < -5) {
-    if (!buzzerOn) {
+
+  // read command from serial port if command = 1, turn on buzzer
+  if (Serial.available() > 0) {
+    byte command[1];
+    Serial.readBytes(command, 1);
+    if (command[0] == 1) {
       analogWrite(3, 128); // Turn on the buzzer at maximum loudness
       buzzerStartTime = millis(); // Record the start time of the buzzer
       buzzerOn = true;
     }
-  } else {
+  }
+  else{
     if (buzzerOn && (millis() - buzzerStartTime >= 250)) {
       analogWrite(3, 0); // Turn off the buzzer
       buzzerOn = false;
     }
   }
-  
   delay(1);
 }
