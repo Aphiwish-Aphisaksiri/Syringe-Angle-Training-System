@@ -47,13 +47,13 @@ void loop() {
   Serial.write((byte*)&data, sizeof(data));
 
   // Convert accelerometer data to g-force
-  float accelXg = data.accX / 16384;
-  float accelYg = data.accY / 16384;
-  float accelZg = data.accZ / 16384;
+  // float accelXg = data.accX / 16384;
+  // float accelYg = data.accY / 16384;
+  // float accelZg = data.accZ / 16384;
 
   // Calculate the roll and pitch angles using accelerometer data
-  float roll = atan2(accelYg, sqrt(accelXg * accelXg + accelZg * accelZg)) * 180.0 / M_PI;
-  float pitch = -atan2(accelXg, sqrt(accelYg * accelYg + accelZg * accelZg)) * 180.0 / M_PI;
+  // float roll = atan2(accelYg, sqrt(accelXg * accelXg + accelZg * accelZg)) * 180.0 / M_PI;
+  // float pitch = -atan2(accelXg, sqrt(accelYg * accelYg + accelZg * accelZg)) * 180.0 / M_PI;
   
   static unsigned long buzzerStartTime = 0;
   static bool buzzerOn = false;
