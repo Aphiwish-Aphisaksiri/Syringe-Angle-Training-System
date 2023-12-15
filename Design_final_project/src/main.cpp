@@ -63,7 +63,7 @@ void loop() {
     byte command[1];
     Serial.readBytes(command, 1);
     if (command[0] == 1) {
-      analogWrite(3, 128); // Turn on the buzzer at maximum loudness
+      analogWrite(3, 128); // Turn on the buzzer at 50% duty cycle
       buzzerStartTime = millis(); // Record the start time of the buzzer
       buzzerOn = true;
     }
